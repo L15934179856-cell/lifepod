@@ -315,6 +315,7 @@ html[data-theme="dark"] .empty .e-ic{background:rgba(255,255,255,.06)}
   position:sticky;top:0;height:100vh;overflow-y:auto;
 }
 .brand{display:flex;align-items:center;gap:10px;padding:6px 6px 16px}
+.side-close{display:none}
 .brand .logo{
   width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:#fff;
   background:linear-gradient(140deg,var(--fox-l),var(--fox-d));box-shadow:0 8px 20px var(--glow),inset 0 1px 0 rgba(255,255,255,.5);
@@ -328,7 +329,7 @@ html[data-theme="dark"] .empty .e-ic{background:rgba(255,255,255,.06)}
 .nav .ni{
   display:flex;align-items:center;gap:10px;min-height:46px;padding:0 10px;border-radius:13px;
   font-size:14px;font-weight:600;color:var(--ink2);position:relative;transition:all .2s var(--ease);
-  border:1px solid transparent;text-align:left;width:100%;touch-action:none;user-select:none;-webkit-user-select:none;
+  border:1px solid transparent;text-align:left;width:100%;touch-action:pan-y;user-select:none;-webkit-user-select:none;
 }
 .nav .ni:hover{background:rgba(255,255,255,.55);color:var(--ink);transform:translateX(3px)}
 html[data-theme="dark"] .nav .ni:hover{background:rgba(255,255,255,.07)}
@@ -1232,7 +1233,7 @@ html[data-theme="dark"] .drawer{background:linear-gradient(160deg,#2e261e,#251f1
 .drawer .dr-item{
   display:flex;flex-direction:column;align-items:center;gap:8px;padding:13px 4px;border-radius:17px;
   background:rgba(255,255,255,.7);border:1px solid #fff;font-size:12px;font-weight:600;color:var(--ink2);
-  box-shadow:0 3px 10px rgba(126,98,66,.08);transition:all .2s var(--ease);touch-action:none;user-select:none;-webkit-user-select:none;
+  box-shadow:0 3px 10px rgba(126,98,66,.08);transition:all .2s var(--ease);touch-action:pan-y;user-select:none;-webkit-user-select:none;
 }
 html[data-theme="dark"] .dr-item{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
 .drawer .dr-item:active{transform:scale(.93)}
@@ -1271,10 +1272,11 @@ html[data-theme="dark"] .dr-item{background:rgba(255,255,255,.06);border-color:r
 @media (max-width:768px){
   body{font-size:14.5px}
   /* v3.2：移动端也用侧边栏形式（滑出式玻璃面板） */
-  .app{padding-top:calc(60px + env(safe-area-inset-top))}
+  .app{padding-top:calc(60px + env(safe-area-inset-top));z-index:auto}
   .side{
     display:flex;position:fixed;left:0;top:0;bottom:0;z-index:960;
     width:min(240px,72vw);height:100vh;height:100dvh;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:none;
     padding:calc(16px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
     transform:translateX(-108%);transition:transform .38s var(--ease-io);
     background:linear-gradient(165deg,rgba(255,255,255,.94),rgba(255,255,255,.88));
@@ -1288,7 +1290,12 @@ html[data-theme="dark"] .dr-item{background:rgba(255,255,255,.06);border-color:r
     box-shadow:0 10px 40px rgba(0,0,0,.5);
   }
   .side.open{transform:translateX(0)}
+  .side::-webkit-scrollbar{display:none}
   .nav .ni{min-height:52px;font-size:15px}
+  .side-close{display:grid;place-items:center;width:38px;height:38px;flex:none;margin-left:auto;border-radius:12px;color:var(--ink2);background:rgba(255,255,255,.55);border:1px solid var(--line);cursor:pointer;transition:all .2s var(--ease)}
+  .side-close .ic{width:16px;height:16px}
+  .side-close:active{transform:scale(.9);background:var(--danger-bg);color:var(--danger)}
+  html[data-theme="dark"] .side-close{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.14)}
   /* 移动端顶栏（玻璃） */
   .m-top{
     display:flex;position:fixed;top:0;left:0;right:0;z-index:940;
@@ -1306,7 +1313,7 @@ html[data-theme="dark"] .dr-item{background:rgba(255,255,255,.06);border-color:r
   .m-top .btn-icon{width:42px;min-height:42px}
   /* 侧边栏遮罩 */
   .side-mask{
-    position:fixed;inset:0;z-index:950;background:rgba(30,24,40,.32);
+    display:block;position:fixed;inset:0;z-index:950;background:rgba(30,24,40,.32);
     -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
     opacity:0;pointer-events:none;transition:opacity .3s;
   }
@@ -1537,6 +1544,7 @@ h2,.page-head h2{ letter-spacing:.3px; }
     <div data-page-node-id="4d3EuglloGawl8eQXZTjzF" class="brand">
       <div data-page-node-id="VlPsWm5mVhH0wOpNrEVzSl" class="logo"><svg data-page-node-id="QU3Vw6VuAHypj8wzDwiocZ" class="ic" style="width:24px; height:24px"><use data-page-node-id="xpmRf2iLT07dOHjsdiSRjD" href="#i-paw"/></svg></div>
       <div data-page-node-id="XAJP9FGTFTA6K9QFXFVdOE"><h1 data-page-node-id="EYJuv0xn3tgX2WfCXwHbHo"><!--pnid:gTzabuJleoDRFf0kI1VewV-->一平米生活舱</h1><p data-page-node-id="eBJjmOOrX7OlMD0iXo5DV3"><!--pnid:ae2C7SeHhqIOI2R8Ah3Gmk-->LIFE&nbsp;POD</p></div>
+      <button class="side-close" id="btnCloseSide" aria-label="收起菜单" title="收起菜单"><svg class="ic"><use href="#i-close"/></svg></button>
     </div>
     <nav data-page-node-id="8WHrcyyXDxd88tSQVc1O02" aria-label="主导航" class="nav" id="sideNav"></nav>
     <div data-page-node-id="DTZ8u4a9UqFMBvlVc9XQHf" class="side-foot">
@@ -2379,6 +2387,8 @@ function makeSortable(container,opts){
   if(!container)return;
   const itemSel=opts.itemSel, holdMs=opts.holdMs||380, dir=opts.dir||'v';
   let el=null, timer=null, sx=0, sy=0, dragging=false;
+  /* 触屏：长按进入拖拽后拦下 touchmove，防止浏览器接管滚动触发 pointercancel 打断排序 */
+  document.addEventListener('touchmove',e=>{if(dragging)e.preventDefault();},{passive:false});
   const clearTimer=()=>{if(timer){clearTimeout(timer);timer=null;}};
   const setNoSelect=on=>{
     document.body.style.userSelect=on?'none':'';
@@ -5375,6 +5385,7 @@ function bindApp(){
   const openSideM=()=>{side.classList.add('open');mask.classList.add('show');};
   $('#btnMenu').onclick=openSideM;
   mask.onclick=closeSideM;
+  $('#btnCloseSide').onclick=closeSideM;
   /* 顶栏深浅色一键切换（浅↔深↔自动 循环） */
   $('#btnThemeM').onclick=()=>{
     const cur=document.documentElement.dataset.theme;
