@@ -490,6 +490,10 @@ html[data-theme="dark"] .ps-btn{background:rgba(255,255,255,.07)}
 .tz-head .ic{color:var(--danger)}
 .tz-head h3{font-size:15.5px}
 .tz-head .tz-n{font-size:12px;font-weight:800;color:#fff;background:var(--danger);border-radius:999px;padding:1px 9px}
+.tz-progress{margin:0 2px 13px}
+.tzp-txt{font-size:13px;font-weight:700;margin-bottom:7px}
+.tzp-bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden}
+.tzp-bar i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--fox-l),var(--fox));transition:width .4s var(--ease-io)}
 .tz-empty{font-size:13.5px;color:var(--ink3);display:flex;align-items:center;gap:9px}
 .tz-item{
   display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:15px;margin-bottom:7px;
@@ -2715,6 +2719,16 @@ function renderTodayZone(){
   const unPlans=DB.plans.filter(p=>!p.checks[today]&&(!p.start||p.start<=today)&&(!p.end||p.end>=today));
   const total=over.length+todays.length+evs.length+unPlans.length;
   let html=`<div class="tz-head">${icon('i-sun')}<h3>今天要处理</h3>${total?`<span class="tz-n">${total}</span>`:''}<span class="tiny muted" style="margin-left:auto">没做完的会自动滚到这里</span></div>`;
+  /* v3.4.2：今日应做进度条（应做 = 截止今天及之前的待办） */
+  const dueTasks=DB.tasks.filter(t=>t.due&&t.due<=today);
+  const dueDone=dueTasks.filter(t=>t.done).length;
+  const pct=dueTasks.length?Math.round(dueDone/dueTasks.length*100):0;
+  if(dueTasks.length){
+    html+=`<div class="tz-progress">
+      <div class="tzp-txt">今日应做 <b>${dueDone}</b>/${dueTasks.length}${over.length?` <span style="color:var(--danger)">· 逾期 ${over.length}</span>`:''}${dueDone>=dueTasks.length?` <span style="color:var(--ok)">· 全部完成 ✓</span>`:''}</div>
+      <div class="tzp-bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }
   if(!total){
     html+=`<div class="tz-empty">${icon('i-heart-fill','ic')}今天没有要处理的安排，泡杯奶茶享受当下。</div>`;
   }else{
@@ -3139,7 +3153,7 @@ function renderTodo(){
   const dueDone=dueTasks.filter(t=>t.done).length;
   const overCnt=DB.tasks.filter(t=>!t.done&&t.due&&t.due<today).length;
   let list=DB.tasks.slice();
-  if(kw)list=list.filter(t=>((t.title||'')+' '+(t.note||'')+' '+(t.tag||'')).toLowerCase().includes(kw.toLowerCase()));
+  if(kw)list=list.filter(t=>((t.title||'')+' '+(t.note||'')+' '+(t.tag||'')+' '+(PRIO[t.prio==null?2:t.prio].n)+'优先').toLowerCase().includes(kw.toLowerCase()));
   if(f==='doing')list=list.filter(t=>!t.done);
   else if(f==='done')list=list.filter(t=>t.done);
   else if(f==='today')list=list.filter(t=>!t.done&&t.due===today);
