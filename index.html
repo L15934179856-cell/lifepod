@@ -5841,12 +5841,30 @@ function renderSyncCard(){
       <button class="btn btn-pri" id="syncNowBtn">${icon('i-reset','ic ic-s')}立即同步</button>
       <button class="btn" id="syncForcePullBtn">${icon('i-download','ic ic-s')}以云端为准</button>
       <button class="btn" id="syncForcePushBtn">${icon('i-upload','ic ic-s')}以本机为准</button>
+      <button class="btn" id="syncReTokBtn">${icon('i-settings','ic ic-s')}更换 Token</button>
       <button class="btn btn-danger" id="syncStopBtn">${icon('i-close','ic ic-s')}停止同步</button>
     </div>
     <div class="tiny muted" style="margin-top:10px">其他设备：打开本页 → 在这里填同一个 Token 即可。合并不会恢复「已在别的设备删除」的内容，需要整份对齐时用「以云端为准」。</div>`;
   $('#syncNowBtn').onclick=()=>{toast('正在同步…','ok');syncPull(false);};
   $('#syncForcePullBtn').onclick=()=>confirmModal({title:'以云端为准？',msg:'将用云端数据完全替换本机当前数据（替换前自动在本机留一份快照）。适合在别的设备上删过内容后使用。',danger:true,okText:'覆盖本机',onOk:()=>syncPull(false,true)});
   $('#syncForcePushBtn').onclick=()=>confirmModal({title:'以本机为准？',msg:'将用本机当前数据完全覆盖云端，其他设备下次同步会采用这份数据。',okText:'覆盖云端',onOk:async()=>{syncSt.lastCloud=0;syncSaveSt();await syncPush(true);toast('已把本机数据推上云端','ok');}});
+  $('#syncReTokBtn').onclick=()=>openModal({
+    icon:'i-settings',title:'更换 Token',sub:'换一个 GitHub Token，云端记录与同步进度都会保留',color:'var(--sky)',
+    body:`<div class="field"><label>新的 GitHub Token</label><input class="inp" id="syncReTokInp" type="password" placeholder="ghp_… 或 github_pat_…" autocomplete="off"></div>
+      <div class="tiny muted">建议用「复制粘贴」，不要手打：Token 是一长串字符，抄写极易出错。粘贴后注意开头是 ghp_ 且结尾没有多余空格。</div>`,
+    footer:`<button class="btn" onclick="closeModal()">取消</button><button class="btn btn-pri" id="syncReTokSave">保存并同步</button>`,
+    onMount(m){
+      m.querySelector('#syncReTokSave').onclick=()=>{
+        const v=m.querySelector('#syncReTokInp').value.trim();
+        if(!v){toast('先粘贴新 Token','warn');return;}
+        if(/\s/.test(v)){toast('Token 中间有空格，重新粘贴一下','warn');return;}
+        syncCfg.token=v;syncSaveCfg();syncSt.err='';syncSaveSt();
+        closeModal();renderSyncCard();
+        toast('Token 已更新，正在同步…','ok');
+        syncPull(false);
+      };
+    }
+  });
   $('#syncStopBtn').onclick=()=>confirmModal({title:'停止云同步？',msg:'只影响这台设备：本机数据保留，不再自动推送/拉取，Token 从本机清除。',okText:'停止',onOk:()=>{syncCfg=null;syncSaveCfg();localStorage.removeItem(SYNC_ST);toast('已停止云同步（本机数据不受影响）','ok');renderSyncCard();}});
 }
 
