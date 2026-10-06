@@ -1751,7 +1751,6 @@ h2,.page-head h2{ letter-spacing:.3px; }
   <div data-page-node-id="Mt0d335CUJJPgszyPQoHuJ" class="tb-row">
     <button data-page-node-id="mAtbHFe5dwUDhOHXuOVuTP" class="tb on" data-page="today"><span data-page-node-id="Qul960iFgQJknTPMgxmA02" class="gi gi-sm"><svg data-page-node-id="8y50O5DibmUCxlFxlkRzWR" class="ic"><use data-page-node-id="9XokHNlq6UR50CAYqAAEHj" href="#i-home"/></svg></span><span data-page-node-id="n1daN6rAkVEyWsh7rXBrW4"><!--pnid:62QZhVRtqplSxfj9DYMFU6-->今日</span></button>
     <button data-page-node-id="QFgIRwidHJfwiPr6RnKe56" class="tb" data-page="todo"><span data-page-node-id="pIIcy5BXS72AHQ26cCpbzJ" class="gi gi-sm"><svg data-page-node-id="yW667rIdzb8OZUEPyeQDOr" class="ic"><use data-page-node-id="UO9fEET3Qo1xcTpBZHRFYX" href="#i-todo"/></svg></span><span data-page-node-id="qJhHD3RQsxtRBMURkygqHc"><!--pnid:P3sZpAAbt373BywwRvL89j-->待办</span><b data-page-node-id="C0oPWAFX4WgFcVSmM6dRG2" class="badge" id="tabTodoBadge" style="display:none"><!--pnid:n5MdezsCP9JVTzu887ump8-->0</b></button>
-    <button data-page-node-id="4pZoJxmrufEOtR1QxEnoCX" class="tb" data-page="bill"><span data-page-node-id="ug8ZMACbO6ke7VkNW23T0r" class="gi gi-sm"><svg data-page-node-id="chrOhpvo4o4iyb5TkAlkUf" class="ic"><use data-page-node-id="gzmD1EroDVyNitZthCBIKA" href="#i-wallet"/></svg></span><span data-page-node-id="n0jftAzNkPGNFK9bg9gi3D"><!--pnid:nExqqCAWmcAawLupoeGomD-->账本</span></button>
     <button data-page-node-id="EaLjoBSo4ZdBzADenLquXN" class="tb" data-page="sched"><span data-page-node-id="Bi97WMfhVO7MHZiMfKqgXJ" class="gi gi-sm"><svg data-page-node-id="rdInL8cLqtRtcNsKDruSWt" class="ic"><use data-page-node-id="dMZLmud2Us95FCYeggmAO8" href="#i-calendar"/></svg></span><span data-page-node-id="kilVz4Jpjv1EcIg6AUqz8i"><!--pnid:uccRW0WAulxGLmRxdQ59ie-->日程</span></button>
     <button data-page-node-id="ghXChgiJyLtql2CizsPXax" class="tb" id="tbMore"><span data-page-node-id="u7I0Ukq0mXrWj2zxM59Mn3" class="gi gi-sm"><svg data-page-node-id="GZQ0HDHT7TOn9W4miyk9lZ" class="ic"><use data-page-node-id="wRPmgVmxELv2IzMnbrW3qA" href="#i-more"/></svg></span><span data-page-node-id="kCviZp2SOc3Nb81Er5cjG3"><!--pnid:J2kzwAo8deUyIsJq5K8sNj-->更多</span></button>
   </div>
@@ -1869,7 +1868,6 @@ const NAV_ITEMS=[
   {k:'focus',n:'番茄专注',i:'i-tomato'},
   {k:'note',n:'笔记',i:'i-note'},
   {k:'trans',n:'课堂转录',i:'i-mic'},
-  {k:'bill',n:'记账理财',i:'i-wallet'},
   {k:'sched',n:'日程统筹',i:'i-calendar'},
   {k:'media',n:'书影音 · 剪藏',i:'i-star'},
   {k:'data',n:'数据与备份',i:'i-settings'}
@@ -2490,7 +2488,7 @@ const RENDER_KEYS={
   meta:['renderDataPage','updateStoreDot']
 };
 const appState={
-  page:'today',todoFilter:'all',todoPrio:-1,todoQuad:'',planView:'heat',
+  page:'today',todoFilter:'all',todoPrio:-1,todoQuad:'',todoKw:'',todoShowDone:false,planView:'heat',
   newsOpen:false,newsRendered:false,
   billMonth:monthStr(),billCat:'all',billKw:'',
   calMonth:monthStr(),calSel:todayStr(),
@@ -2685,8 +2683,6 @@ function renderHero(){
   const tCount=DB.tasks.filter(t=>!t.done&&t.due&&t.due<=today).length;
   const eCount=DB.events.filter(e=>e.date===today).length;
   const streak=Math.max(0,...DB.plans.map(planStreak),0);
-  const mBills=DB.bills.filter(b=>b.date.slice(0,7)===monthStr()&&b.io==='out');
-  const mOut=mBills.reduce((a,b)=>a+Number(b.amount||0),0);
   const dv=DB.diary[today];
   const dm=dv&&dv.mood?moodOf(dv.mood):null;
   wrap.innerHTML=`
@@ -2699,7 +2695,6 @@ function renderHero(){
         <div class="hi-stat" title="今日待办">${icon('i-todo')}<b>${tCount}</b>件待办</div>
         <div class="hi-stat" title="今日日程">${icon('i-calendar')}<b>${eCount}</b>项日程</div>
         <div class="hi-stat" title="最长连续打卡">${icon('i-flame')}连击<b>${streak}</b>天</div>
-        <div class="hi-stat" title="本月支出">${icon('i-wallet')}<b>${mOut.toFixed(0)}</b>元支出</div>
       </div>
       <button class="hi-diary${dv?' on':''}" id="heroDiary">
         ${dv?icon(dm?dm.i:'i-pen'):icon('i-pen')}
@@ -3138,7 +3133,13 @@ function renderTodo(){
   const el=$('#todoBody');
   if(!el)return;
   const today=todayStr(),f=appState.todoFilter;
+  const kw=(appState.todoKw||'').trim();
+  /* v3.4：今日进度概览（应做 = 截止在今天及之前的未完成 + 今天完成的） */
+  const dueTasks=DB.tasks.filter(t=>t.due&&t.due<=today);
+  const dueDone=dueTasks.filter(t=>t.done).length;
+  const overCnt=DB.tasks.filter(t=>!t.done&&t.due&&t.due<today).length;
   let list=DB.tasks.slice();
+  if(kw)list=list.filter(t=>((t.title||'')+' '+(t.note||'')+' '+(t.tag||'')).toLowerCase().includes(kw.toLowerCase()));
   if(f==='doing')list=list.filter(t=>!t.done);
   else if(f==='done')list=list.filter(t=>t.done);
   else if(f==='today')list=list.filter(t=>!t.done&&t.due===today);
@@ -3152,8 +3153,36 @@ function renderTodo(){
     if(!a.due&&b.due)return 1;
     return (a.prio||2)-(b.prio||2);
   });
+  /* v3.4：「全部」视图下已完成默认折叠，可展开 / 一键清除 */
+  let doneFold='';
+  if(f==='all'&&!kw){
+    const doneItems=list.filter(t=>t.done);
+    if(doneItems.length&&doneItems.length!==list.length){
+      if(appState.todoShowDone){
+        doneFold=`<div style="display:flex;gap:8px;align-items:center;margin:-4px 0 14px">
+          <button class="chip" id="btnDoneFold">收起已完成</button>
+          <button class="chip" id="btnDoneClear" style="color:var(--ink3)">${icon('i-trash','ic ic-xs')}清除已完成</button>
+        </div>`;
+      }else{
+        list=list.filter(t=>!t.done);
+        doneFold=`<div style="display:flex;gap:8px;align-items:center;margin:-4px 0 14px">
+          <button class="chip" id="btnDoneFold">已隐藏 ${doneItems.length} 件已完成 ▸</button>
+          <button class="chip" id="btnDoneClear" style="color:var(--ink3)">${icon('i-trash','ic ic-xs')}清除已完成</button>
+        </div>`;
+      }
+    }
+  }
   const filters=[['all','全部'],['doing','进行中'],['today','今日'],['over','逾期'],['done','已完成']];
-  let html=`<div class="hscroll" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px">
+  const pct=dueTasks.length?Math.round(dueDone/dueTasks.length*100):0;
+  let html=`
+    ${(dueTasks.length||overCnt)?`<div class="glass" style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:16px;margin-bottom:10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;margin-bottom:7px">今日应做 ${dueDone}/${dueTasks.length}${overCnt?` <span style="color:var(--danger)">· 逾期 ${overCnt}</span>`:''}${dueTasks.length&&dueDone>=dueTasks.length?` <span style="color:var(--ok)">· 全部完成 ✓</span>`:''}</div>
+        <div style="height:8px;border-radius:8px;background:var(--line);overflow:hidden"><i style="display:block;height:100%;width:${pct}%;border-radius:8px;background:linear-gradient(90deg,var(--fox-l),var(--fox));transition:width .4s var(--ease-io)"></i></div>
+      </div>
+    </div>`:''}
+    <div style="margin-bottom:10px"><input class="inp" id="todoKw" type="search" placeholder="搜索：标题 / 备注 / 标签" value="${esc(appState.todoKw||'')}" autocomplete="off"></div>
+    <div class="hscroll" style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px">
     ${filters.map(([k,n])=>`<button class="chip${f===k?' on':''}" data-f="${k}">${n}</button>`).join('')}
     <span style="flex:1"></span>
     <button class="chip" id="btnQuadView" title="四象限总览">${icon('i-quadrant','ic ic-xs')}象限视图</button>
@@ -3164,7 +3193,7 @@ function renderTodo(){
     <span class="tiny muted" style="align-self:center">象限：</span>
     <button class="chip${appState.todoQuad===''?' on':''}" data-quad="" style="font-size:12px">不限</button>
     ${QUADS.map(q=>`<button class="chip${appState.todoQuad===q.k?' on':''}" data-quad="${q.k}" style="font-size:12px;--qc:${q.c};--qb:${q.bg}">${q.n}</button>`).join('')}
-  </div>`;
+  </div>${doneFold}`;
   if(!list.length){
     html+=`<div class="empty"><div class="e-ic">${icon('i-todo')}</div>${f==='all'?'还没有待办，点右上角「新建待办」开始':f==='done'?'还没有已完成的事项，先做一件吧':'这个筛选下暂时没有内容'}</div>`;
   }else{
@@ -3189,6 +3218,21 @@ function renderTodo(){
   el.querySelectorAll('.chip[data-f]').forEach(c=>c.onclick=()=>{appState.todoFilter=c.dataset.f;renderTodo();});
   el.querySelectorAll('.chip[data-prio]').forEach(c=>c.onclick=()=>{appState.todoPrio=+c.dataset.prio;renderTodo();});
   el.querySelectorAll('#quadFilter .chip[data-quad]').forEach(c=>c.onclick=()=>{appState.todoQuad=c.dataset.quad;renderTodo();});
+  const ki=el.querySelector('#todoKw');
+  if(ki)ki.oninput=()=>{appState.todoKw=ki.value;renderTodo();const n=el.querySelector('#todoKw');if(n){n.focus();try{n.setSelectionRange(n.value.length,n.value.length);}catch(_){}}};
+  const df=el.querySelector('#btnDoneFold');
+  if(df)df.onclick=()=>{appState.todoShowDone=!appState.todoShowDone;renderTodo();};
+  const dc=el.querySelector('#btnDoneClear');
+  if(dc)dc.onclick=()=>{
+    const n=DB.tasks.filter(t=>t.done).length;
+    if(!n){toast('没有已完成的事项','warn');return;}
+    confirmModal({title:'清除已完成？',msg:'将删除 '+n+' 件已完成的待办，不可恢复。',danger:true,okText:'清除',onOk:()=>{
+      DB.tasks=DB.tasks.filter(t=>!t.done);
+      appState.todoShowDone=false;
+      scheduleSave();refresh(['tasks']);renderTodo();
+      toast('已清除 '+n+' 件已完成','ok');
+    }});
+  };
   const qv=el.querySelector('#btnQuadView');
   if(qv)qv.onclick=openQuadBoard;
   el.querySelectorAll('.cbx[data-tid]').forEach(c=>{
@@ -3464,10 +3508,6 @@ function buildWeekSummary(){
   /* 笔记 / 拉片 / 灵感类内容 */
   const newNotes=DB.notes.filter(n=>n.created>=monday.getTime()).length;
   const shots=DB.shots.filter(s=>s.date&&s.date>=mondayStr).length;
-  /* 记账 */
-  const weekBills=DB.bills.filter(b=>b.date&&b.date>=mondayStr);
-  const outSum=weekBills.filter(b=>b.io==='out').reduce((a,b)=>a+(+b.amount||0),0);
-  const inSum=weekBills.filter(b=>b.io==='in').reduce((a,b)=>a+(+b.amount||0),0);
   /* 心得 */
   const diaries=weekDays.filter(d=>DB.diary&&DB.diary[d]).length;
   const rate=DB.plans.length?Math.round(totalChecks/(DB.plans.length*7)*100):0;
@@ -3490,9 +3530,6 @@ function buildWeekSummary(){
     `## ✍️ 记录与创作`,
     `- 新增笔记 **${newNotes}** 条 · 拉片 **${shots}** 部 · 写下心得 **${diaries}** 天`,
     ``,
-    `## 💰 本周账本`,
-    `- 支出 **¥${fmtMoney(outSum)}**${inSum?` · 收入 **¥${fmtMoney(inSum)}**`:''}${outSum||inSum?` · 净${inSum-outSum>=0?'收入':'支出'} **¥${fmtMoney(Math.abs(inSum-outSum))}**`:''}`,
-    ``,
     `## 💡 下周建议`,
     `- ${overTasks?`先清掉 ${overTasks} 件逾期待办，从最旧的开始`:(undone>8?'待办有点多，试试按四象限先做「重要不紧急」的大事':'保持节奏，重要的事先做')}`,
     `- ${pomos<5?'番茄钟可以再多来几个，哪怕 15 分钟的短专注':'专注量很棒，注意每 4 个番茄起来活动一下'}`,
@@ -3504,7 +3541,7 @@ function buildWeekSummary(){
 function openWeekSummary(){
   const md=buildWeekSummary();
   openModal({
-    icon:'i-note',title:'本周学习总结',sub:'自动汇总本周打卡 / 待办 / 番茄 / 账本',color:'var(--mint)',
+    icon:'i-note',title:'本周学习总结',sub:'自动汇总本周打卡 / 待办 / 番茄',color:'var(--mint)',
     body:`<div class="ws-body">${mdToHtml(md)}</div>`,
     footer:`<button class="btn" id="wsCopy">复制文本</button><button class="btn" id="wsDown">导出 .md</button><button class="btn btn-pri" onclick="closeModal()">完成</button>`,
     onMount(m){
@@ -5146,7 +5183,7 @@ function renderDataPage(){
   const st=$('#dataStatus'),bk=$('#dataBackup'),hp=$('#dataHelp'),dg=$('#dataDanger');
   if(!st)return;
   const sizeKB=(JSON.stringify(DB).length/1024).toFixed(1);
-  const counts=[['待办',DB.tasks.length],['学习计划',DB.plans.length],['观影计划',DB.films.length],['拉片笔记',DB.shots.length],['笔记',DB.notes.length],['转录会话',DB.trans.length],['账单',DB.bills.length],['日程',DB.events.length],['书影音',DB.media.length],['剪藏',DB.clips.length],['心得',Object.keys(DB.diary).length]];
+  const counts=[['待办',DB.tasks.length],['学习计划',DB.plans.length],['观影计划',DB.films.length],['拉片笔记',DB.shots.length],['笔记',DB.notes.length],['转录会话',DB.trans.length],['日程',DB.events.length],['书影音',DB.media.length],['剪藏',DB.clips.length],['心得',Object.keys(DB.diary).length]];
   const total=counts.reduce((a,c)=>a+c[1],0);
   st.innerHTML=`
     <div class="card-title">${icon('i-info')}存储状态</div>
