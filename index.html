@@ -5688,11 +5688,11 @@ let syncCfg=null, syncSt={lastCloud:0,lastPull:0,lastPush:0,busy:false,err:''};
 let syncPushTimer=null;
 function syncLoad(){
   try{syncCfg=JSON.parse(localStorage.getItem(SYNC_CFG)||'null');}catch(e){syncCfg=null;}
-  try{syncSt=Object.assign({lastCloud:0,lastPull:0,lastPush:0,err:''},JSON.parse(localStorage.getItem(SYNC_ST)||'{}'));}catch(e){}
+  try{syncSt=Object.assign({lastCloud:0,lastPull:0,lastPush:0,err:'',pausedUntil:0},JSON.parse(localStorage.getItem(SYNC_ST)||'{}'));}catch(e){}
   syncSt.busy=false;
 }
 function syncSaveCfg(){try{localStorage.setItem(SYNC_CFG,JSON.stringify(syncCfg));}catch(e){}}
-function syncSaveSt(){try{localStorage.setItem(SYNC_ST,JSON.stringify({lastCloud:syncSt.lastCloud,lastPull:syncSt.lastPull,lastPush:syncSt.lastPush,err:syncSt.err}));}catch(e){}}
+function syncSaveSt(){try{localStorage.setItem(SYNC_ST,JSON.stringify({lastCloud:syncSt.lastCloud,lastPull:syncSt.lastPull,lastPush:syncSt.lastPush,err:syncSt.err,pausedUntil:syncSt.pausedUntil||0}));}catch(e){}}
 function syncOn(){return !!(syncCfg&&syncCfg.token);}
 function syncAPI(){return (syncCfg&&syncCfg.api)||'https://api.github.com';}
 function ghHeaders(){return {'Authorization':'Bearer '+syncCfg.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};}
@@ -5732,6 +5732,18 @@ function applyCloudMerge(src){
   return added+updated;
 }
 
+function dbRealCount(db){
+  const ks=['tasks','plans','notes','trans','bills','events','media','clips','films','shots','sparks','courses'];
+  let r=0;
+  ks.forEach(k=>{(db[k]||[]).forEach(x=>{if(!String(x.id||'').startsWith('demo-'))r++;});});
+  return r;
+}
+function stripDemoDB(db){
+  const c=JSON.parse(JSON.stringify(db));
+  ['tasks','plans','notes','trans','bills','events','media','clips','films','shots','sparks','courses'].forEach(k=>{if(Array.isArray(c[k]))c[k]=c[k].filter(x=>!String(x.id||'').startsWith('demo-'));});
+  return c;
+}
+
 function adoptCloudReflow(){
   applyTheme(DB.settings.theme);applyFS(DB.settings.fs);
   renderNav();renderDrawer();
@@ -5741,12 +5753,14 @@ function adoptCloudReflow(){
 
 async function syncPush(force){
   if(!syncOn())return;
+  if(Date.now()<(syncSt.pausedUntil||0))return;
+  if(dbRealCount(DB)===0)return; /* v3.4.3：纯演示/空库不上传，杜绝示例污染云端 */
   if(!force&&(DB.meta.saved||0)<=(syncSt.lastCloud||0))return;
   if(syncSt.busy){scheduleCloudPush(6000);return;}
   syncSt.busy=true;
   try{
     const id=await gistFindOrCreate();
-    const r=await fetch(syncAPI()+'/gists/'+id,{method:'PATCH',headers:ghHeaders(),signal:AbortSignal.timeout(20000),body:JSON.stringify({files:{[SYNC_FILE]:{content:JSON.stringify(DB)}}})});
+    const r=await fetch(syncAPI()+'/gists/'+id,{method:'PATCH',headers:ghHeaders(),signal:AbortSignal.timeout(20000),body:JSON.stringify({files:{[SYNC_FILE]:{content:JSON.stringify(stripDemoDB(DB))}}})});
     if(r.status===401)throw new Error('Token 无效或已过期 (401)');
     if(r.status===404){syncCfg.gistId='';syncSaveCfg();throw new Error('云端记录不存在，已重置，稍后自动重建 (404)');}
     if(!r.ok)throw new Error('推送失败 ('+r.status+')');
@@ -5755,12 +5769,14 @@ async function syncPush(force){
     if(appState.page==='data')renderSyncCard();
   }catch(e){
     syncSt.err=e.message;syncSaveSt();
+    if(/403/.test(e.message)){syncSt.pausedUntil=Date.now()+15*60*1000;syncSaveSt();}
     if(appState.page==='data')renderSyncCard();
   }finally{syncSt.busy=false;}
 }
 
 async function syncPull(silent,force){
   if(!syncOn())return;
+  if(Date.now()<(syncSt.pausedUntil||0))return;
   if(syncSt.busy)return;
   syncSt.busy=true;
   try{
@@ -5789,15 +5805,29 @@ async function syncPull(silent,force){
       scheduleCloudPush(800);
     }else{
       try{localStorage.setItem(SYNC_PRE,JSON.stringify(DB));}catch(e){}
-      const n=applyCloudMerge(cloud);
+      let n;
+      if(dbRealCount(DB)===0&&dbRealCount(cloud)>0){
+        /* v3.4.3：本机还是纯演示/空数据时，整份采用云端，避免示例混入真实数据 */
+        DB=mergeDefaults(JSON.parse(JSON.stringify(cloud)));
+        n=-1;
+      }else{
+        n=applyCloudMerge(cloud);
+      }
       syncSt.lastCloud=cSaved;syncSt.lastPull=Date.now();syncSt.err='';syncSaveSt();
-      saveNow();adoptCloudReflow();
-      if(n>0)toast('云同步：已合并云端更新（新增/更新 '+n+' 条）','ok');
-      else if(!silent)toast('云端与本机已一致','ok');
+      if(n>0){
+        saveNow();adoptCloudReflow();
+        toast('云同步：已合并云端更新（新增/更新 '+n+' 条）','ok');
+      }else if(n<0){
+        saveNow();adoptCloudReflow();
+        toast('云同步：已采用云端数据','ok');
+      }else if(!silent){
+        toast('云端与本机已一致','ok');
+      }
     }
     scheduleCloudPush(3000);
   }catch(e){
     syncSt.err=e.message;syncSaveSt();
+    if(/403/.test(e.message)){syncSt.pausedUntil=Date.now()+15*60*1000;syncSaveSt();}
     if(!silent)toast('云同步出错：'+e.message,'warn');
     if(appState.page==='data')renderSyncCard();
   }finally{syncSt.busy=false;}
@@ -5813,7 +5843,7 @@ function syncBoot(){
   syncLoad();
   if(!syncOn())return;
   setTimeout(()=>syncPull(true),2500);
-  setInterval(()=>{if(document.visibilityState==='visible')syncPull(true);},30000);
+  setInterval(()=>{if(document.visibilityState==='visible')syncPull(true);},60000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncPull(true);});
   window.addEventListener('online',()=>scheduleCloudPush(2000));
 }
