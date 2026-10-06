@@ -2177,6 +2177,13 @@ function mergeDefaults(db){
   if(!Array.isArray(s.drawerOrder))s.drawerOrder=[];
   return db;
 }
+function emptyDB(){
+  /* v3.4.4：新设备/无数据时从零开始，不再注入演示内容 */
+  const d=demoDB();
+  ['tasks','plans','notes','trans','bills','events','media','clips','films','shots','sparks','courses'].forEach(k=>{if(Array.isArray(d[k]))d[k]=d[k].filter(x=>!String(x.id||'').startsWith('demo-'));});
+  d.diary={};
+  return d;
+}
 function loadDB(){
   let raw=null;
   try{raw=localStorage.getItem(LS_KEY);}catch(e){storageOK=false;}
@@ -2191,10 +2198,10 @@ function loadDB(){
     DB=mergeDefaults(db);
     if(fromBak&&raw) queueBanner('warn','检测到主数据异常，已自动从备份快照恢复。建议立刻到「数据与备份」导出一次 JSON。','restore');
   }else if(raw){
-    DB=demoDB();
-    queueBanner('err','数据损坏且备份快照不可用，已重置为演示数据。若之前导出过 JSON 备份，请在「数据与备份」页导入恢复。','corrupt');
+    DB=emptyDB();
+    queueBanner('err','数据损坏且备份快照不可用，已重置为空数据。若之前导出过 JSON 备份，请在「数据与备份」页导入恢复。','corrupt');
   }else{
-    DB=demoDB();
+    DB=emptyDB();
   }
 }
 function saveNow(){
